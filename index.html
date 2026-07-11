@@ -1,0 +1,105 @@
+here<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mera Universal AI Chatbot (Streaming)</title>
+    <style>
+        /* Chatbot ka style aur design */
+        #ai-chat-container {
+            position: fixed; bottom: 20px; right: 20px;
+            width: 350px; height: 450px;
+            background: white; border: 1px solid #ccc;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+            border-radius: 10px; display: flex; flex-direction: column;
+            font-family: Arial, sans-serif;
+            z-index: 9999;
+        }
+        #chat-header { background: #4285F4; color: white; padding: 10px; border-radius: 10px 10px 0 0; text-align: center; font-weight: bold; }
+        #chat-box { flex: 1; padding: 10px; overflow-y: auto; border-bottom: 1px solid #eee; font-size: 14px; }
+        #input-container { display: flex; padding: 10px; }
+        #user-input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 3px; outline: none; }
+        #send-btn { background: #4285F4; color: white; border: none; padding: 5px 15px; margin-left: 5px; cursor: pointer; border-radius: 3px; }
+        #send-btn:disabled { background: #cccccc; cursor: not-allowed; }
+        .ai-response { color: #4285F4; margin-bottom: 10px; }
+        .user-response { color: #333; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="ai-chat-container">
+    <div id="chat-header">🤖 Gemini Nano (Streaming)</div>
+    <div id="chat-box">
+        <p style="color: gray; font-style: italic;">Browser ka AI initialize ho raha hai...</p>
+    </div>
+    <div id="input-container">
+        <input type="text" id="user-input" placeholder="Kuch poohein..." disabled>
+        <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+    </div>
+</div>
+
+<script>
+    let aiSession = null;
+
+    // AI Initialize karne ka function
+    async function initGeminiNano() {
+        const chatBox = document.getElementById("chat-box");
+        const inputField = document.getElementById("user-input");
+        const sendBtn = document.getElementById("send-btn");
+
+        try {
+            const aiCapabilities = await window.ai?.languageModel?.capabilities();
+            
+            if (aiCapabilities && aiCapabilities.available !== 'no') {
+                aiSession = await window.ai.languageModel.create();
+                chatBox.innerHTML = `<p style="color: green;"><b>AI Status:</b> Connected! Local streaming ready.</p>`;
+                inputField.disabled = false;
+                sendBtn.disabled = false;
+            } else {
+                chatBox.innerHTML = `<p style="color: red;"><b>Error:</b> Gemini Nano support nahi mila. Chrome Flags check karein.</p>`;
+            }
+        } catch (error) {
+            console.error(error);
+            chatBox.innerHTML = `<p style="color: red;"><b>Error:</b> AI Initialize nahi ho saka.</p>`;
+        }
+    }
+
+    // Streaming Message Function
+    async function sendMessage() {
+        const inputField = document.getElementById("user-input");
+        const chatBox = document.getElementById("chat-box");
+        const message = inputField.value.trim();
+        
+        if (!message || !aiSession) return;
+
+        // User ka message add karein
+        chatBox.innerHTML += `<div class="user-response"><b>Aap:</b> ${message}</div>`;
+        inputField.value = "";
+        
+        // AI ke response ke liye ek khali element banayein jismein text stream hoga
+        const aiMessageDiv = document.createElement("div");
+        aiMessageDiv.className = "ai-response";
+        aiMessageDiv.innerHTML = "<b>Gemini Nano:</b> ...";
+        chatBox.appendChild(aiMessageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+
+        try {
+            // promptStreaming call kiya
+            const stream = aiSession.promptStreaming(message);
+            
+            for await (const chunk of stream) {
+                // Chunk by chunk text update hoga
+                aiMessageDiv.innerHTML = `<b>Gemini Nano:</b> ${chunk}`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }
+        } catch (error) {
+            console.error(error);
+            aiMessageDiv.innerHTML = `<span style="color: red;"><b>Error:</b> Stream toot gaya.</span>`;
+        }
+    }
+
+    window.onload = initGeminiNano;
+</script>
+
+</body>
+</html>
